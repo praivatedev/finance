@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, flash, redirect, render_template, request, session, jsonify
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import query, execute
@@ -108,23 +108,27 @@ def quote():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        confirmation = request.form.get("confirmation")
-        if not username or not password or not confirmation:
-            return apology("All fields should be entered")
-        elif password != confirmation:
-            return apology("The passwords do not match!!")
-        else:
-            user = query("SELECT * FROM users WHERE username=?", (username,), fetch="one")
-            if user:
-                return apology("User already exists!!", 409)
-            hash = generate_password_hash(password)
-            execute("INSERT INTO users (username, hash) VALUES (?,?)", (username, hash))
-            return redirect("/login")
-    else:
+    if request.method != "POST":
         return render_template("register.html")
+
+    data = request.get_json()
+
+    username = data.get("username")
+    password = data.get("password")
+    confirmation = data.get("confirmation")
+
+    # Validation
+    if not all([username, password, confirmation]):
+        return jsonify({"message": "All fields should be entered"}), 400
+
+    if password != confirmation:
+        return jsonify({"message": "The passwords do not match!!"}), 400
+    
+    if query("SELECT * FROM users WHERE username=?", (username,), fetch="one"):
+        return jsonify({"message": "User already exists!!"}), 409
+    
+    execute("INSERT INTO users (username, hash) VALUES (?,?)", (username, generate_password_hash(password)))
+    return jsonify({"message": None}), 200
 
 
 @app.route("/sell", methods=["GET", "POST"])

@@ -1,16 +1,30 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Stock Quote
+Stock Quote
 {% endblock %}
 
 {% block main %}
 
-<form action="/quote" method="post">
+<div>
+    <form action="/quote" method="post" id="form-quote">
         <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="symbol" placeholder="Symbol" type="text">
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="symbol" placeholder="Symbol"
+                type="text">
         </div>
         <button class="btn btn-primary" type="submit">Submit</button>
     </form>
+    <p id="message" class="text-center mt-3"></p>
 
+    <!-- This section is hidden until a quote is loaded -->
+    <div id="quote-result" class="mt-4" style="display: none;">
+        <h3 id="quote-name"></h3>
+        <p id="quote-symbol" class="text-muted"></p>
+        <p id="quote-price" class="fs-4"></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='quote.js') }}"></script>
 {% endblock %}

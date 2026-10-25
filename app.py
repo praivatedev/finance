@@ -105,19 +105,20 @@ def quote():
     if request.method != "POST":
         return render_template("quote.html")
 
-    symbol = request.form.get("symbol")
+    data = request.get_json()
+
+    symbol = data.get("symbol", "")
 
     #validation
     if not symbol:
-        return apology("share the symbol for stock quote!!!")
+        return jsonify({"message": "Symbol is required."}), 400
 
-    data = lookup(symbol)
-    print(data)
+    stock = lookup(symbol)
 
-    if data == None:
-        return jsonify({"message": "stock not found!!"})
+    if stock is None:
+        return jsonify({"message": "stock not found!!"}), 404
 
-    return jsonify(data)
+    return jsonify(stock), 200
 
 
 @app.route("/register", methods=["GET", "POST"])

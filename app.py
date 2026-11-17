@@ -3,9 +3,11 @@ import os
 from flask import Flask, flash, redirect, render_template, request, session, jsonify
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
-from database import query, execute
+from database import query_one, execute
 
 from helpers import apology, login_required, lookup, usd
+from models.stock import buy_stock
+from models.users import find_user
 
 # Configure application
 app = Flask(__name__)
@@ -40,7 +42,39 @@ def index():
 @login_required
 def buy():
     """Buy shares of stock"""
-    return apology("TODO")
+
+    if request.method != "POST":
+        return render_template("buy.html")
+        
+    user_id = session["user_id"]
+
+    data = request.get_json()
+    symbol = data.get("symbol", "").strip().upper()
+
+    if not symbol:
+        return jsonify({"message": "Symbol is required!!"}), 400
+    
+    try:
+        stock = lookup(symbol)
+    except Exception:
+        return jsonify({"message": "Failed to fetch stock data"}), 502
+
+    if stock is None:
+        return jsonify({"message": "Stock not found!!"}), 404
+
+    user = find_user(user_id)
+
+    if user is None:
+        return redirect("/login")
+
+    if user["cash"] < stock["price"]:
+        return jsonify({"message": "Not enough cash"}), 400
+
+    cash = user["cash"] - stock["price"]
+
+    buy_stock(stock["name"], stock["price"], symbol, user_id, cash)
+
+    return jsonify(stock), 201
 
 
 @app.route("/history")
@@ -68,7 +102,7 @@ def login():
             return apology("must provide password", 403)
 
         # Query database for username
-        row = query("SELECT * FROM users WHERE username = ?", (request.form.get("username"),), fetch="one")
+        row = query_one("SELECT * FROM users WHERE username = ?", (request.form.get("username"),))
 
         # Ensure username exists and password is correct
         if not row or not check_password_hash(
@@ -114,6 +148,7 @@ def quote():
         return jsonify({"message": "Symbol is required."}), 400
 
     stock = lookup(symbol)
+    print(stock)
 
     if stock is None:
         return jsonify({"message": "stock not found!!"}), 404
@@ -140,7 +175,7 @@ def register():
     if password != confirmation:
         return jsonify({"message": "The passwords do not match!!"}), 400
     
-    if query("SELECT * FROM users WHERE username=?", (username,), fetch="one"):
+    if query_one("SELECT * FROM users WHERE username=?", (username,)):
         return jsonify({"message": "User already exists!!"}), 409
     
     execute("INSERT INTO users (username, hash) VALUES (?,?)", (username, generate_password_hash(password)))

@@ -48,11 +48,20 @@ def buy():
         
     user_id = session["user_id"]
 
-    data = request.get_json()
+    data = request.get_json() or {}
     symbol = data.get("symbol", "").strip().upper()
 
     if not symbol:
         return jsonify({"message": "Symbol is required!!"}), 400
+
+    try:
+        shares = int(data.get("shares"))
+
+    except(TypeError, ValueError):
+        return jsonify({"message": "Shares must be a whole number"}), 400
+         
+    if shares <= 0:
+        return jsonify({"message": "Shares must be positive"}), 400
     
     try:
         stock = lookup(symbol)
@@ -67,12 +76,14 @@ def buy():
     if user is None:
         return redirect("/login")
 
-    if user["cash"] < stock["price"]:
+    if user["cash"] < stock["price"] * shares:
         return jsonify({"message": "Not enough cash"}), 400
+    
+   
 
-    cash = user["cash"] - stock["price"]
+    total_cost = stock["price"] * shares
 
-    buy_stock(stock["name"], stock["price"], symbol, user_id, cash)
+    buy_stock(stock["name"], stock["price"], symbol, user_id, total_cost, shares)
 
     return jsonify(stock), 201
 

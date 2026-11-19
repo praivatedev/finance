@@ -10,7 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
         clear_message()
 
         const body = {
-            "symbol": form.symbol.value.trim()
+            "symbol": form.symbol.value.trim(),
+            "shares": parseInt(form.shares.value)
         }
 
         buy_btn.disabled = true
